@@ -6,6 +6,10 @@ STORAGEACCOUNT=$1
 SUDOUSER=$2
 LOCATION=$3
 
+echo "STORAGEACCOUNT=$1"
+echo "SUDOUSER=$2"
+echo "LOCATION=$3"
+
 # Install EPEL repository
 echo $(date) " - Installing EPEL"
 

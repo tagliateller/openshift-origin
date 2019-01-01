@@ -29,6 +29,31 @@ export LOGGING=${22}
 export AZURE=${23}
 export STORAGEKIND=${24}
 
+echo "SUDOUSER=$1"
+echo "PASSWORD=$2"
+echo "PRIVATEKEY=$3"
+echo "MASTER=$4"
+echo "MASTERPUBLICIPHOSTNAME=$5"
+echo "MASTERPUBLICIPADDRESS=$6"
+echo "INFRA=$7"
+echo "NODE=$8"
+echo "NODECOUNT=$9"
+echo "INFRACOUNT=${10}"
+echo "MASTERCOUNT=${11}"
+echo "ROUTING=${12}"
+echo "REGISTRYSA=${13}"
+echo "ACCOUNTKEY=${14}"
+echo "TENANTID=${15}"
+echo "SUBSCRIPTIONID=${16}"
+echo "AADCLIENTID=${17}"
+echo "AADCLIENTSECRET=${18}"
+echo "RESOURCEGROUP=${19}"
+echo "LOCATION=${20}"
+echo "METRICS=${21}"
+echo "LOGGING=${22}"
+echo "AZURE=${23}"
+echo "STORAGEKIND=${24}"
+
 # Determine if Commercial Azure or Azure Government
 CLOUD=$( curl -H Metadata:true "http://169.254.169.254/metadata/instance/compute/location?api-version=2017-04-02&format=text" | cut -c 1-2 )
 export CLOUD=${CLOUD^^}
