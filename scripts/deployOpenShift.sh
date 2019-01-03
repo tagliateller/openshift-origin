@@ -257,14 +257,21 @@ runuser -l $SUDOUSER -c "ansible-playbook ~/openshift-container-platform-playboo
 echo $(date) " - DNS Hostname resolution check complete"
 
 # Setup NetworkManager to manage eth0
-runuser -l $SUDOUSER -c "ansible-playbook /home/$SUDOUSER/openshift-ansible/playbooks/openshift-node/network_manager.yml"
+echo $(date) " - Setting up NetworkManager on eth0 (0)"
+DOMAIN=`domainname -d`
+DNSSERVER=`tail -1 /etc/resolv.conf | cut -d ' ' -f 2`
 
-echo $(date) " - Setting up NetworkManager on eth0"
-# Configure resolv.conf on all hosts through NetworkManager
+echo $(date) " - Setting up NetworkManager on eth0 (1)"
+runuser -l $SUDOUSER -c "ansible-playbook -c paramiko /home/$SUDOUSER/openshift-ansible/playbooks/openshift-node/network_manager.yml"
 
-runuser -l $SUDOUSER -c "ansible all -b -o -m service -a \"name=dbus state=restarted\""
-runuser -l $SUDOUSER -c "ansible all -b -o -m service -a \"name=NetworkManager state=restarted\""
-runuser -l $SUDOUSER -c "ansible all -b -o -m service -a \"name=network state=restarted\""
+sleep 10
+echo $(date) " - Setting up NetworkManager on eth0 (2)"
+runuser -l $SUDOUSER -c "ansible all -c paramiko -b -o -m service -a \"name=NetworkManager state=restarted\""
+sleep 10
+echo $(date) " - Setting up NetworkManager on eth0 (3)"
+runuser -l $SUDOUSER -c "ansible all -c paramiko -b -o -m command -a \"nmcli con modify eth0 ipv4.dns-search $DOMAIN, ipv4.dns $DNSSERVER\""
+echo $(date) " - Setting up NetworkManager on eth0 (4)"
+runuser -l $SUDOUSER -c "ansible all -c paramiko -b -o -m service -a \"name=NetworkManager state=restarted\""
 echo $(date) " - NetworkManager configuration complete"
 
 # Create /etc/origin/cloudprovider/azure.conf on all hosts if Azure is enabled
