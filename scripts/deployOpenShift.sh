@@ -295,7 +295,7 @@ echo $(date) " - Prerequisites check complete"
 # Initiating installation of OpenShift Origin using Ansible Playbook
 echo $(date) " - Installing OpenShift Container Platform via Ansible Playbook"
 
-runuser -l $SUDOUSER -c "ansible-playbook -f 10 /home/$SUDOUSER/openshift-ansible/playbooks/deploy_cluster.yml"
+runuser -l $SUDOUSER -c "ansible-playbook /home/$SUDOUSER/openshift-ansible/playbooks/deploy_cluster.yml"
 echo $(date) " - OpenShift Origin Cluster install complete"
 echo $(date) " - Running additional playbooks to finish configuring and installing other components"
 
