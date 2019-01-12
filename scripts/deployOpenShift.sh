@@ -173,7 +173,7 @@ new_nodes
 ansible_ssh_user=$SUDOUSER
 ansible_become=yes
 openshift_install_examples=true
-openshift_deployment_type=origin
+​openshift_deployment_type=origin
 openshift_release=v3.11
 docker_udev_workaround=True
 openshift_use_dnsmasq=True
@@ -205,6 +205,10 @@ openshift_enable_service_catalog=false
 # Disable the OpenShift SDN plugin
 # openshift_use_openshift_sdn=true
 
+
+
+ # apply updated node defaults 
+openshift_node_groups=[{'name': 'node-config-all-in-one', 'labels': ['node-role.kubernetes.io/master=true', 'node-role.kubernetes.io/infra=true', 'node-role.kubernetes.io/compute=true'], 'edits': [{ 'key': 'kubeletArguments.pods-per-core','value': ['20']}]}] 
 # Setup metrics
 openshift_metrics_install_metrics=false
 #openshift_metrics_cassandra_storage_type=dynamic
