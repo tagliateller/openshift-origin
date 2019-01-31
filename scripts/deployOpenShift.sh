@@ -173,7 +173,7 @@ new_nodes
 ansible_ssh_user=$SUDOUSER
 ansible_become=yes
 openshift_install_examples=true
-​openshift_deployment_type=origin
+openshift_deployment_type=origin
 openshift_release=v3.11
 docker_udev_workaround=True
 openshift_use_dnsmasq=True
