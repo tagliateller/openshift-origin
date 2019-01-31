@@ -205,10 +205,6 @@ openshift_enable_service_catalog=false
 # Disable the OpenShift SDN plugin
 # openshift_use_openshift_sdn=true
 
-
-
- # apply updated node defaults 
-openshift_node_groups=[{'name': 'node-config-all-in-one', 'labels': ['node-role.kubernetes.io/master=true', 'node-role.kubernetes.io/infra=true', 'node-role.kubernetes.io/compute=true'], 'edits': [{ 'key': 'kubeletArguments.pods-per-core','value': ['20']}]}] 
 # Setup metrics
 openshift_metrics_install_metrics=false
 #openshift_metrics_cassandra_storage_type=dynamic
