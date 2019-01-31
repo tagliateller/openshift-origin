@@ -123,7 +123,7 @@ echo $(date) " - Creating Master nodes grouping"
 for (( c=0; c<$MASTERCOUNT; c++ ))
 do
   mastergroup="$mastergroup
-$MASTER-$c openshift_node_labels=\"{'region': 'master', 'zone': 'default'}\""
+$MASTER-$c openshift_node_group_name='node-config-master'"
 done
 
 # Create Infra nodes grouping 
@@ -132,7 +132,7 @@ echo $(date) " - Creating Infra nodes grouping"
 for (( c=0; c<$INFRACOUNT; c++ ))
 do
   infragroup="$infragroup
-$INFRA-$c openshift_node_labels=\"{'region': 'infra', 'zone': 'default'}\""
+$INFRA-$c openshift_node_group_name='node-config-infra'"
 done
 
 # Create Nodes grouping
@@ -141,7 +141,7 @@ echo $(date) " - Creating Nodes grouping"
 for (( c=0; c<$NODECOUNT; c++ ))
 do
   nodegroup="$nodegroup
-$NODE-$c openshift_node_labels=\"{'region': 'app', 'zone': 'default'}\""
+$NODE-$c openshift_node_group_name='node-config-compute'"
 done
 
 # Set HA mode if 3 or 5 masters chosen
