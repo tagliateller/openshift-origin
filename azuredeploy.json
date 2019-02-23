@@ -10,6 +10,9 @@
 			},
 			"defaultValue": "https://raw.githubusercontent.com/Microsoft/openshift-origin/release-3.9"
 		},
+		"imageReference": {
+			"type": "array"
+		},
 		"masterVmSize": {
 			"type": "string",
 			"defaultValue": "Standard_DS3_v2",
@@ -342,10 +345,7 @@
 		"infraLbHttpProbeId": "[concat(variables('infraLbId'),'/probes/httpProbe')]",
 		"infraLbHttpsProbeId": "[concat(variables('infraLbId'),'/probes/httpsProbe')]",
 		"imageReference": {
-			"publisher": "Openlogic",
-			"offer": "CentOS",
-			"sku": "7.4",
-			"version": "latest"
+			"[parameters('imageReference')]"
 		},
 		"redHatTags": {
 			"app": "OpenShiftOrigin",
