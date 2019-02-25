@@ -2,4 +2,3 @@
 
 *.local
 *.local.json
-clusterconfig.*.yml
