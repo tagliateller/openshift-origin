@@ -12,6 +12,7 @@
         state: absent
         subscription_id: "{{ azure_subscription_id }}"
         resource_group_name: "{{ resource_group_name }}"
+        location: "{{ location }}" 
       ignore_errors: yes
 
     - name: Create Origin Cluster
@@ -19,6 +20,7 @@
         state: present
         subscription_id: "{{ azure_subscription_id }}"
         resource_group_name: "{{ resource_group_name }}"
+        location: "{{ location }}"
         parameters:
             _artifactsLocation:
                 value: "{{ _artifactsLocation }}"
