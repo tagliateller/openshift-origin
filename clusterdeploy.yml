@@ -12,6 +12,7 @@
         state: absent
         subscription_id: "{{ azure_subscription_id }}"
         resource_group_name: "{{ resource_group_name }}"
+      ignore_errors: yes
 
     - name: Create Origin Cluster
       azure_rm_deployment:
