@@ -3,7 +3,7 @@
   connection: local
   gather_facts: no
   
-  var_files:
+  vars_files:
     - clusterconfig.3.9.yml
     
   tasks:
