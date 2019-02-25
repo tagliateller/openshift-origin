@@ -1,0 +1,75 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  var_files:
+    - clusterconfig.3.9.yml
+    
+  tasks:
+    - name: Destroy Origin Cluster
+      azure_rm_deployment:
+        state: absent
+        subscription_id: "{{ azure_subscription_id }}"
+        resource_group_name: "{{ resource_group_name }}"
+
+    - name: Create Origin Cluster
+      azure_rm_deployment:
+        state: present
+        subscription_id: "{{ azure_subscription_id }}"
+        resource_group_name: "{{ resource_group_name }}"
+        parameters:
+            _artifactsLocation:
+                value: "{{ _artifactsLocation }}"
+            imageReference:
+                value: "{{ imageReference }}"
+            masterVmSize:
+                value: "{{ masterVmSize }}"
+            infraVmSize:
+                value: "{{ infraVmSize }}"
+            nodeVmSize:
+                value: "{{ nodeVmSize }}"
+            storageKind:
+                value: "{{ storageKind }}"
+            openshiftClusterPrefix:
+                value: "{{ openshiftClusterPrefix }}"
+            masterInstanceCount:
+                value: "{{ masterInstanceCount }}"
+            infraInstanceCount:
+                value: "{{ infraInstanceCount }}"
+            nodeInstanceCount:
+                value: "{{ nodeInstanceCount }}"
+            dataDiskSize:
+                value: "{{ dataDiskSize }}"
+            adminUsername:
+                value: "{{ adminUsername }}"
+            openshiftPassword:
+                value: "{{ openshiftPassword }}"
+            enableMetrics:
+                value: "{{ enableMetrics }}"
+            enableLogging:
+                value: "{{ enableLogging }}"
+            sshPublicKey:
+                value: "{{ sshPublicKey }}"
+            keyVaultResourceGroup:
+                value: "{{ keyVaultResourceGroup }}"
+            keyVaultName:
+                value: "{{ keyVaultName }}"
+            keyVaultSecret:
+                value: "{{ keyVaultSecret }}"
+            enableAzure:
+                value: "{{ enableAzure }}"
+            aadClientId:
+                value: "{{ aadClientId }}"
+            aadClientSecret:
+                value: "{{ aadClientSecret }}"
+            defaultSubDomainType:
+                value: "{{ defaultSubDomainType }}"
+            defaultSubDomain:
+                value: "{{ defaultSubDomain }}"
+        template_link: 'https://raw.githubusercontent.com/tagliateller/openshift-origin/release-3.9/azuredeploy.json'
+      register: azure
+
+    - name: debug output
+      debug: 
+        msg: "{{ azure }}"
