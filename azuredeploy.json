@@ -10,7 +10,7 @@
 			},
 			"defaultValue": "https://raw.githubusercontent.com/Microsoft/openshift-origin/release-3.9"
 		},
-		"imageReference": {
+		"imageRef": {
 			"type": "array"
 		},
 		"masterVmSize": {
@@ -345,7 +345,7 @@
 		"infraLbHttpProbeId": "[concat(variables('infraLbId'),'/probes/httpProbe')]",
 		"infraLbHttpsProbeId": "[concat(variables('infraLbId'),'/probes/httpsProbe')]",
 		"imageReference": {
-			"[parameters('imageReference')]"
+			"parameters('imageRef')"
 		},
 		"redHatTags": {
 			"app": "OpenShiftOrigin",
