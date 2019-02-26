@@ -4,7 +4,7 @@
   gather_facts: no
   
   vars_files:
-    - clusterconfig.3.9.yml
+    - clusterconfig.yml
     
   tasks:
     - name: Destroy Origin Cluster
