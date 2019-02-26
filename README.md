@@ -192,3 +192,14 @@ Few options you have
    ```
   now this user can login with the 'oc' CLI tool or the openshift console url
 
+# azure-ftpserver
+
+# Deployment mit Ansible
+
+ansible-playbook clusterdeploy.yml --ask-vault
+
+Next Steps:
+- enable azure
+- bastion svt dazufügen und tests ausführen
+ 
+ 
