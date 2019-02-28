@@ -150,12 +150,6 @@ then
 	export HAMODE="openshift_master_cluster_method=native"
 fi
 
-# Setting the default openshift_cloudprovider_kind if Azure enabled
-if [[ $AZURE == "true" ]]
-then
-	export CLOUDKIND="openshift_cloudprovider_kind=azure"
-fi
-
 # Create Ansible Hosts File
 echo $(date) " - Create Ansible Hosts file"
 
@@ -184,7 +178,17 @@ openshift_master_api_port=443
 openshift_master_console_port=443
 osm_default_node_selector='region=app'
 openshift_disable_check=disk_availability,memory_availability,docker_image_availability
-$CLOUDKIND
+
+
+#cloudprovider
+openshift_cloudprovider_kind=azure
+openshift_cloudprovider_azure_client_id=$AADCLIENTID
+openshift_cloudprovider_azure_client_secret=$AADCLIENTSECRET
+openshift_cloudprovider_azure_tenant_id=$TENTANTID
+openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID
+openshift_cloudprovider_azure_resource_group=$RESOURCEGROUP
+openshift_cloudprovider_azure_location=$LOCATION
+#endcloudprovider
 
 # default selectors for router and registry services
 openshift_router_selector='region=infra'
