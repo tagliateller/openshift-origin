@@ -211,24 +211,18 @@ openshift_enable_service_catalog=false
 
 # Setup metrics
 openshift_metrics_install_metrics=false
-#openshift_metrics_cassandra_storage_type=dynamic
 openshift_metrics_start_cluster=true
-openshift_metrics_startup_timeout=120
-openshift_metrics_hawkular_nodeselector={"region":"infra"}
-openshift_metrics_cassandra_nodeselector={"region":"infra"}
-openshift_metrics_heapster_nodeselector={"region":"infra"}
-# openshift_metrics_hawkular_hostname=https://hawkular-metrics.$ROUTING/hawkular/metrics
+openshift_metrics_hawkular_nodeselector={"node-role.kubernetes.io/infra":"true"}
+openshift_metrics_cassandra_nodeselector={"node-role.kubernetes.io/infra":"true"}
+openshift_metrics_heapster_nodeselector={"node-role.kubernetes.io/infra":"true"}
 
 # Setup logging
 openshift_logging_install_logging=false
-# openshift_logging_es_pvc_dynamic=true
-openshift_logging_es_pvc_storage_class_name=generic
 openshift_logging_fluentd_nodeselector={"logging":"true"}
-openshift_logging_es_nodeselector={"region":"infra"}
-openshift_logging_kibana_nodeselector={"region":"infra"}
-openshift_logging_curator_nodeselector={"region":"infra"}
-openshift_master_logging_public_url=https://kibana.$ROUTING
-openshift_logging_master_public_url=https://$MASTERPUBLICIPHOSTNAME:443
+openshift_logging_es_nodeselector={"node-role.kubernetes.io/infra":"true"}
+openshift_logging_kibana_nodeselector={"node-role.kubernetes.io/infra":"true"}
+openshift_logging_curator_nodeselector={"node-role.kubernetes.io/infra":"true"}
+openshift_logging_master_public_url=https://$MASTERPUBLICIPHOSTNAME
 
 # host group for masters
 [masters]
@@ -410,44 +404,42 @@ fi
 
 if [ $METRICS == "true" ]
 then
-	sleep 30	
-	echo $(date) "- Determining Origin version from rpm"
-	OO_VERSION="v"$(rpm -q origin | cut -d'-' -f 2 | head -c 3)
-	echo $(date) "- Deploying Metrics"
-	if [ $AZURE == "true" ]
-	then
-		runuser -l $SUDOUSER -c "ansible-playbook -f 10 /home/$SUDOUSER/openshift-ansible/playbooks/openshift-metrics/config.yml -e openshift_metrics_install_metrics=True -e openshift_metrics_cassandra_storage_type=dynamic -e openshift_metrics_image_version=$OO_VERSION"
-	else
-		runuser -l $SUDOUSER -c "ansible-playbook -f 10 /home/$SUDOUSER/openshift-ansible/playbooks/openshift-metrics/config.yml -e openshift_metrics_install_metrics=True -e openshift_metrics_image_version=$OO_VERSION"
-	fi
-	if [ $? -eq 0 ]
-	then
-	   echo $(date) " - Metrics configuration completed successfully"
-	else
-	   echo $(date) "- Metrics configuration failed"
-	   exit 11
-	fi
+    sleep 30
+    echo $(date) "- Deploying Metrics"
+    if [[ $AZURE == "true" || $ENABLECNS == "true" ]]
+    then
+        runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=$TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -e openshift_metrics_install_metrics=True -e openshift_metrics_cassandra_storage_type=dynamic -f 30 /home/$SUDOUSER/openshift-ansible/playbooks/openshift-metrics/config.yml"
+    else
+        runuser -l $SUDOUSER -c "ansible-playbook -e openshift_metrics_install_metrics=True /home/$SUDOUSER/openshift-ansible/playbooks/openshift-metrics/config.yml"
+    fi
+    if [ $? -eq 0 ]
+    then
+        echo $(date) " - Metrics configuration completed successfully"
+    else
+        echo $(date) " - Metrics configuration failed"
+        exit 11
+    fi
 fi
 
 # Configure Logging
 
-if [ $LOGGING == "true" ] 
+if [ $LOGGING == "true" ]
 then
-	sleep 60
-	echo $(date) "- Deploying Logging"
-	if [ $AZURE == "true" ]
-	then
-		runuser -l $SUDOUSER -c "ansible-playbook -f 10 /home/$SUDOUSER/openshift-ansible/playbooks/openshift-logging/config.yml -e openshift_logging_install_logging=True -e openshift_logging_es_pvc_dynamic=true -e openshift_master_dynamic_provisioning_enabled=True"
-	else
-		runuser -l $SUDOUSER -c "ansible-playbook -f 10 /home/$SUDOUSER/openshift-ansible/playbooks/openshift-logging/config.yml -e openshift_logging_install_logging=True"
-	fi
-	if [ $? -eq 0 ]
-	then
-	   echo $(date) " - Logging configuration completed successfully"
-	else
-	   echo $(date) "- Logging configuration failed"
-	   exit 12
-	fi
+    sleep 60
+    echo $(date) "- Deploying Logging"
+    if [[ $AZURE == "true" || $ENABLECNS == "true" ]]
+    then
+        runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=$TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -e openshift_logging_install_logging=True -e openshift_logging_es_pvc_dynamic=true -f 30 /home/$SUDOUSER/openshift-ansible/playbooks/openshift-logging/config.yml"
+    else
+        runuser -l $SUDOUSER -c "ansible-playbook -e openshift_logging_install_logging=True -f 30 /home/$SUDOUSER/openshift-ansible/playbooks/openshift-logging/config.yml"
+    fi
+    if [ $? -eq 0 ]
+    then
+        echo $(date) " - Logging configuration completed successfully"
+    else
+        echo $(date) " - Logging configuration failed"
+        exit 12
+    fi
 fi
 
 # Delete yaml files
