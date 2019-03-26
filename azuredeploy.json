@@ -186,29 +186,7 @@
 				"description": "Enable OpenShift Logging: true or false"
 			}
 		},
-},
 		"enableCNS": {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 			"type": "string",
 			"defaultValue": "true",
 			"allowedValues": [
