@@ -85,6 +85,17 @@
 				"description": "OpenShift Infra Node VM(s) size"
 			}
 		},
+		"cnsVmSize": {
+			"type": "string",
+			"defaultValue": "Standard_E4s_v3",
+			"allowedValues": [
+				"Standard_D4s_v3", "Standard_D8s_v3", "Standard_D16s_v3", "Standard_D32s_v3", "Standard_D64s_v3",
+				"Standard_E4s_v3", "Standard_E8s_v3", "Standard_E16s_v3", "Standard_E32s_v3", "Standard_E64s_v3"
+			],
+			"metadata": {
+				"description": "OpenShift CNS Node VM(s) size"
+			}
+		},
 		"storageKind": {
 			"type": "string",
 			"defaultValue": "managed",
@@ -250,10 +261,12 @@
 		"openshiftMasterHostname": "[concat(variables('namingInfix'), '-master')]",
 		"openshiftNodeHostname": "[concat(variables('namingInfix'), '-node')]",
 		"openshiftInfraHostname": "[concat(variables('namingInfix'), '-infra')]",
+		"openshiftCnsHostname": "[concat(variables('namingInfix'), '-cns')]",
 		"newStorageAccountMaster": "[concat('master', uniqueString(concat(resourceGroup().id, 'msa')))]",
 		"newStorageAccountInfra": "[concat('infra', uniqueString(concat(resourceGroup().id, 'infra')))]",
 		"newStorageAccountNodeOs": "[concat('nodeos', uniqueString(concat(resourceGroup().id, 'nodeossa')))]",
 		"newStorageAccountNodeData": "[concat('nodedata', uniqueString(concat(resourceGroup().id, 'nodedatasa')))]",
+		"newStorageAccountCns": "[concat('cns', uniqueString(concat(resourceGroup().id, 'csa')))]",
 		"diagStorageAccount1": "[concat('diag1', uniqueString(concat(resourceGroup().id, 'dsa1')))]",
 		"diagStorageAccount2": "[concat('diag2', uniqueString(concat(resourceGroup().id, 'dsa2')))]",
 		"newStorageAccountRegistry": "[concat('registry', uniqueString(concat(resourceGroup().id, 'registry')))]",
@@ -292,6 +305,10 @@
 				"skuName": "[variables('vmSizesMap')[parameters('nodeVmSize')].storageAccountType]",
 				"skuTier": "[variables('vmSizesMap')[parameters('nodeVmSize')].storageAccountTier]"
 			},
+			"cns": {
+				"skuName": "[variables('vmSizesMap')[parameters('cnsVmSize')].storageAccountType]",
+				"skuTier": "[variables('vmSizesMap')[parameters('cnsVmSize')].storageAccountTier]"
+			},
 			"diagnostics": {
 				"skuName": "Standard_LRS",
 				"skuTier": "Standard"
@@ -316,6 +333,8 @@
 		"managedNodeOsUri": "[variables('diagStorageAccount1')]",
 		"unmanagedNodeDataUri": "[variables('newStorageAccountNodeData')]",
 		"managedNodeDataUri": "[variables('diagStorageAccount1')]",
+		"unmanagedCnsUri": "[variables('newStorageAccountCns')]",
+		"managedCnsUri": "[variables('diagStorageAccount1')]",
 		"masterUri": "[concat(parameters('storageKind'), 'MasterUri')]",
 		"infraUri": "[concat(parameters('storageKind'), 'InfraUri')]",
 		"nodeOsUri": "[concat(parameters('storageKind'), 'NodeOsUri')]",
@@ -323,6 +342,7 @@
 		"addressPrefix": "10.0.0.0/8",
 		"masterSubnetPrefix": "10.1.0.0/16",
 		"nodeSubnetPrefix": "10.2.0.0/16",
+		"cnsUri": "[concat(parameters('storageKind'), 'CnsUri')]",
 		"virtualNetworkName": "openshiftvnet",
 		"masterSubnetName": "mastersubnet",
 		"nodeSubnetName": "nodesubnet",
@@ -351,6 +371,8 @@
 			"provider": "9d2c71fc-96ba-4b4a-93b3-14def5bc96fc"
 		},
 		"singlequote": "'",
+		"glusterDiskSize": 128,
+		"cnsInstanceCount": 3,
 		"sshKeyPath": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
 		"nodePrepScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/nodePrep.sh')]",
 		"masterPrepScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/masterPrep.sh')]",

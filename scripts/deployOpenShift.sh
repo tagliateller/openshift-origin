@@ -28,9 +28,12 @@ export METRICS=${21}
 export LOGGING=${22}
 export AZURE=${23}
 export STORAGEKIND=${24}
-export VNETNAME=${25}
-export NODENSG=${26}
-export NODEAVAILIBILITYSET=${27}
+export ENABLECNS=${25}
+export CNS=${26}
+export CNSCOUNT=${27}
+export VNETNAME=${28}
+export NODENSG=${29}
+export NODEAVAILIBILITYSET=${30}
 
 echo "SUDOUSER=$1"
 echo "PASSWORD=$2"
@@ -182,6 +185,35 @@ then
 	export HAMODE="openshift_master_cluster_method=native"
 fi
 
+# Create CNS nodes grouping if CNS is enabled
+if [ $ENABLECNS == "true" ]
+then
+    echo $(date) " - Creating CNS nodes grouping"
+
+    for (( c=0; c<$CNSCOUNT; c++ ))
+    do
+        cnsgroup="$cnsgroup
+$CNS-$c openshift_hostname=$CNS-$c openshift_node_group_name='node-config-compute'"
+    done
+fi
+
+# Create glusterfs configuration if CNS is enabled
+if [ $ENABLECNS == "true" ]
+then
+    echo $(date) " - Creating glusterfs configuration"
+
+    for (( c=0; c<$CNSCOUNT; c++ ))
+    do
+        runuser $SUDOUSER -c "ssh-keyscan -H $CNS-$c >> ~/.ssh/known_hosts"
+        drive=$(runuser $SUDOUSER -c "ssh $CNS-$c 'sudo /usr/sbin/fdisk -l'" | awk '$1 == "Disk" && $2 ~ /^\// && ! /mapper/ {if (drive) print drive; drive = $2; sub(":", "", drive);} drive && /^\// {drive = ""} END {if (drive) print drive;}')
+        drive1=$(echo $drive | cut -d ' ' -f 1)
+        drive2=$(echo $drive | cut -d ' ' -f 2)
+        drive3=$(echo $drive | cut -d ' ' -f 3)
+        cnsglusterinfo="$cnsglusterinfo
+$CNS-$c glusterfs_devices='[ \"${drive1}\", \"${drive2}\", \"${drive3}\" ]'"
+    done
+fi
+
 # Create Ansible Hosts File
 echo $(date) " - Create Ansible Hosts file"
 
@@ -192,6 +224,7 @@ masters
 nodes
 etcd
 master0
+glusterfs
 new_nodes
 
 # Set variables common for all OSEv3 hosts
@@ -267,6 +300,7 @@ $MASTER-0
 $mastergroup
 $infragroup
 $nodegroup
+$cnsgroup
 
 # host group for new nodes
 [new_nodes]
@@ -299,19 +333,6 @@ runuser -l $SUDOUSER -c "ansible all -c paramiko -b -o -m command -a \"nmcli con
 echo $(date) " - Setting up NetworkManager on eth0 (4)"
 runuser -l $SUDOUSER -c "ansible all -c paramiko -b -o -m service -a \"name=NetworkManager state=restarted\""
 echo $(date) " - NetworkManager configuration complete"
-
-# Create /etc/origin/cloudprovider/azure.conf on all hosts if Azure is enabled
-#if [[ $AZURE == "true" ]]
-#then
-#	runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/create-azure-conf.yaml"
-#	if [ $? -eq 0 ]
-#	then
-#		echo $(date) " - Creation of Cloud Provider Config (azure.conf) completed on all nodes successfully"
-#	else
-#		echo $(date) " - Creation of Cloud Provider Config (azure.conf) completed on all nodes failed to complete"
-#		exit 13
-#	fi
-#fi
 
 # Initiating installation of OpenShift Origin prerequisites using Ansible Playbook
 echo $(date) " - Running Prerequisites via Ansible Playbook"
@@ -348,6 +369,59 @@ runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-play
 echo $(date) "- Configuring Docker Registry to use Azure Storage Account"
 
 runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/$DOCKERREGISTRYYAML"
+
+# Reconfigure glusterfs storage class
+if [ $CNS_DEFAULT_STORAGE == "true" ]
+then
+    echo $(date) "- Create default glusterfs storage class"
+    cat > /home/$SUDOUSER/default-glusterfs-storage.yaml <<EOF
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "$CNS_DEFAULT_STORAGE"
+  name: default-glusterfs-storage
+parameters:
+  resturl: http://heketi-storage-glusterfs.${ROUTING}
+  restuser: admin
+  secretName: heketi-storage-admin-secret
+  secretNamespace: glusterfs
+provisioner: kubernetes.io/glusterfs
+reclaimPolicy: Delete
+EOF
+    runuser -l $SUDOUSER -c "oc create -f /home/$SUDOUSER/default-glusterfs-storage.yaml"
+
+    echo $(date) " - Sleep for 10"
+    sleep 10
+fi
+
+# Ensuring selinux is configured properly
+if [ $ENABLECNS == "true" ]
+then
+    # Setting selinux to allow gluster-fusefs access
+    echo $(date) " - Setting selinux to allow gluster-fuse access"
+    runuser -l $SUDOUSER -c "ansible all -o -f 30 -b -a 'sudo setsebool -P virt_sandbox_use_fusefs on'" || true
+# End of CNS specific section
+fi
+
+# Installing Service Catalog, Ansible Service Broker and Template Service Broker
+if [[ $AZURE == "true" || $ENABLECNS == "true" ]]
+then
+    runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=$TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -e openshift_enable_service_catalog=true -f 30 /usr/share/ansible/openshift-ansible/playbooks/openshift-service-catalog/config.yml"
+fi
+
+# Adding Open Sevice Broker for Azaure (requires service catalog)
+if [[ $AZURE == "true" ]]
+then
+    oc new-project osba
+    oc process -f https://raw.githubusercontent.com/Azure/open-service-broker-azure/master/contrib/openshift/osba-os-template.yaml  \
+        -p ENVIRONMENT=AzurePublicCloud \
+        -p AZURE_SUBSCRIPTION_ID=$SUBSCRIPTIONID \
+        -p AZURE_TENANT_ID=$TENANTID \
+        -p AZURE_CLIENT_ID=$AADCLIENTID \
+        -p AZURE_CLIENT_SECRET=$AADCLIENTSECRET \
+        | oc create -f -
+fi
 
 # Configure Metrics
 
