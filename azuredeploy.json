@@ -1366,7 +1366,7 @@
 					},
 					"redHatTags": {
 						"value": "[variables('redHatTags')]"
-					}
+					}					
 				}
 			}
 		}, {
@@ -1652,7 +1652,16 @@
 							},
 							"secretName": "[parameters('keyVaultSecret')]"
 						}
-					}
+					},
+					"virtualNetworkName": {
+						"value": "[variables('virtualNetworkName')]"
+					},
+					"nodeNetworkSecurityGroup": {
+						"value": "[concat(variables('openshiftNodeHostname'), '-nsg')]"
+					},
+					"nodeAvailabilitySet": {
+						"value": "nodeavailabilityset"
+					}					
 				}
 			}
 		}

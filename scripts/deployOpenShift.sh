@@ -28,6 +28,9 @@ export METRICS=${21}
 export LOGGING=${22}
 export AZURE=${23}
 export STORAGEKIND=${24}
+export VNETNAME=${25}
+export NODENSG=${26}
+export NODEAVAILIBILITYSET=${27}
 
 echo "SUDOUSER=$1"
 echo "PASSWORD=$2"
@@ -53,6 +56,12 @@ echo "METRICS=${21}"
 echo "LOGGING=${22}"
 echo "AZURE=${23}"
 echo "STORAGEKIND=${24}"
+echo "VNETNAME=${25}"
+echo "NODENSG=${26}"
+echo "NODEAVAILIBILITYSET=${27}"
+
+# Set CNS to default storage type.  Will be overridden later if Azure is true
+export CNS_DEFAULT_STORAGE=true
 
 # Determine if Commercial Azure or Azure Government
 CLOUD=$( curl -H Metadata:true "http://169.254.169.254/metadata/instance/compute/location?api-version=2017-04-02&format=text" | cut -c 1-2 )
@@ -74,6 +83,39 @@ sed -i -e "s/^# control_path = %(directory)s\/%%h-%%r/control_path = %(directory
 sed -i -e "s/^#host_key_checking = False/host_key_checking = False/" /etc/ansible/ansible.cfg
 sed -i -e "s/^#pty=False/pty=False/" /etc/ansible/ansible.cfg
 sed -i -e "s/^#stdout_callback = skippy/stdout_callback = skippy/" /etc/ansible/ansible.cfg
+
+# Create docker registry config based on Commercial Azure or Azure Government
+if [[ $CLOUD == "US" ]]
+then
+  DOCKERREGISTRYYAML=dockerregistrygov.yaml
+  export CLOUDNAME="AzureUSGovernmentCloud"
+else
+  DOCKERREGISTRYYAML=dockerregistrypublic.yaml
+  export CLOUDNAME="AzurePublicCloud"
+fi
+
+# Setting the default openshift_cloudprovider_kind if Azure enabled
+if [[ $AZURE == "true" ]]
+then
+    CLOUDKIND="openshift_cloudprovider_kind=azure
+openshift_cloudprovider_azure_client_id=$AADCLIENTID
+openshift_cloudprovider_azure_client_secret=$AADCLIENTSECRET
+openshift_cloudprovider_azure_tenant_id=$TENANTID
+openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID
+openshift_cloudprovider_azure_cloud=$CLOUDNAME
+openshift_cloudprovider_azure_vnet_name=$VNETNAME
+openshift_cloudprovider_azure_security_group_name=$NODENSG
+openshift_cloudprovider_azure_availability_set_name=$NODEAVAILIBILITYSET
+openshift_cloudprovider_azure_resource_group=$RESOURCEGROUP
+openshift_cloudprovider_azure_location=$LOCATION"
+	CNS_DEFAULT_STORAGE=false
+	if [[ $STORAGEKIND == "managed" ]]
+	then
+		SCKIND="openshift_storageclass_parameters={'kind': 'managed', 'storageaccounttype': 'Premium_LRS'}"
+	else
+		SCKIND="openshift_storageclass_parameters={'kind': 'shared', 'storageaccounttype': 'Premium_LRS'}"
+	fi
+fi
 
 # Cloning Ansible playbook repository
 (cd /home/$SUDOUSER && git clone https://github.com/Microsoft/openshift-container-platform-playbooks.git)
@@ -106,16 +148,6 @@ EOF
 echo $(date) " - Updating ansible.cfg file"
 
 ansible-playbook ./updateansiblecfg.yaml
-
-# Create docker registry config based on Commercial Azure or Azure Government
-if [[ $CLOUD == "US" ]]
-then
-  DOCKERREGISTRYYAML=dockerregistrygov.yaml
-  export CLOUDNAME="AzureUSGovernmentCloud"
-else
-  DOCKERREGISTRYYAML=dockerregistrypublic.yaml
-  export CLOUDNAME="AzurePublicCloud"
-fi
 
 # Create Master nodes grouping
 echo $(date) " - Creating Master nodes grouping"
@@ -176,23 +208,18 @@ openshift_override_hostname_check=true
 os_sdn_network_plugin_name='redhat/openshift-ovs-multitenant'
 openshift_master_api_port=443
 openshift_master_console_port=443
-osm_default_node_selector='region=app'
+# ist in 3.11 anders: 
+#osm_default_node_selector='region=app'
+osm_default_node_selector='node-role.kubernetes.io/compute=true'
 openshift_disable_check=disk_availability,memory_availability,docker_image_availability
 
-
-#cloudprovider
-openshift_cloudprovider_kind=azure
-openshift_cloudprovider_azure_client_id=$AADCLIENTID
-openshift_cloudprovider_azure_client_secret=$AADCLIENTSECRET
-openshift_cloudprovider_azure_tenant_id=$TENTANTID
-openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID
-openshift_cloudprovider_azure_resource_group=$RESOURCEGROUP
-openshift_cloudprovider_azure_location=$LOCATION
-#endcloudprovider
+$CLOUDKIND
 
 # default selectors for router and registry services
-openshift_router_selector='region=infra'
-openshift_registry_selector='region=infra'
+#openshift_router_selector='region=infra'
+#openshift_registry_selector='region=infra'
+openshift_router_selector='node-role.kubernetes.io/infra=true'
+openshift_registry_selector='node-role.kubernetes.io/infra=true'
 
 $HAMODE
 openshift_master_cluster_hostname=$MASTERPUBLICIPHOSTNAME
@@ -274,17 +301,17 @@ runuser -l $SUDOUSER -c "ansible all -c paramiko -b -o -m service -a \"name=Netw
 echo $(date) " - NetworkManager configuration complete"
 
 # Create /etc/origin/cloudprovider/azure.conf on all hosts if Azure is enabled
-if [[ $AZURE == "true" ]]
-then
-	runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/create-azure-conf.yaml"
-	if [ $? -eq 0 ]
-	then
-		echo $(date) " - Creation of Cloud Provider Config (azure.conf) completed on all nodes successfully"
-	else
-		echo $(date) " - Creation of Cloud Provider Config (azure.conf) completed on all nodes failed to complete"
-		exit 13
-	fi
-fi
+#if [[ $AZURE == "true" ]]
+#then
+#	runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/create-azure-conf.yaml"
+#	if [ $? -eq 0 ]
+#	then
+#		echo $(date) " - Creation of Cloud Provider Config (azure.conf) completed on all nodes successfully"
+#	else
+#		echo $(date) " - Creation of Cloud Provider Config (azure.conf) completed on all nodes failed to complete"
+#		exit 13
+#	fi
+#fi
 
 # Initiating installation of OpenShift Origin prerequisites using Ansible Playbook
 echo $(date) " - Running Prerequisites via Ansible Playbook"
@@ -322,83 +349,83 @@ echo $(date) "- Configuring Docker Registry to use Azure Storage Account"
 
 runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/$DOCKERREGISTRYYAML"
 
-if [[ $AZURE == "true" ]]
-then
-	# Execute setup-azure-master and setup-azure-node playbooks to configure Azure Cloud Provider
-	echo $(date) "- Configuring OpenShift Cloud Provider to be Azure"
-
-	runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/setup-azure-master-origin.yaml"
-
-	if [ $? -eq 0 ]
-	then
-	   echo $(date) " - Cloud Provider setup of master config on Master Nodes completed successfully"
-	else
-	   echo $(date) "- Cloud Provider setup of master config on Master Nodes failed to completed"
-	   exit 7
-	fi
-	
-	echo $(date) "- Sleep for 60"
-	
-	sleep 60
-	runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/setup-azure-node-master-origin.yaml"
-
-	if [ $? -eq 0 ]
-	then
-	   echo $(date) " - Cloud Provider setup of node config on Master Nodes completed successfully"
-	else
-	   echo $(date) "- Cloud Provider setup of node config on Master Nodes failed to completed"
-	   exit 8
-	fi
-	
-	echo $(date) "- Sleep for 60"
-	
-	sleep 60
-	runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/setup-azure-node-origin.yaml"
-
-	if [ $? -eq 0 ]
-	then
-	   echo $(date) " - Cloud Provider setup of node config on App Nodes completed successfully"
-	else
-	   echo $(date) "- Cloud Provider setup of node config on App Nodes failed to completed"
-	   exit 9
-	fi
-	
-	echo $(date) "- Sleep for 120"
-	
-	sleep 120
-	
-	echo $(date) " - Rebooting cluster to complete installation"
-	runuser -l $SUDOUSER -c  "oc label --overwrite nodes $MASTER-0 openshift-infra=apiserver"
-	runuser -l $SUDOUSER -c  "oc label --overwrite nodes --all logging-infra-fluentd=true logging=true"
-	runuser -l $SUDOUSER -c  "ansible localhost -b -o -m service -a 'name=openvswitch state=restarted'"
-	runuser -l $SUDOUSER -c  "ansible localhost -b -o -m service -a 'name=origin-master-api state=restarted'"
-	runuser -l $SUDOUSER -c  "ansible localhost -b -o -m service -a 'name=origin-master-controllers state=restarted'"
-	runuser -l $SUDOUSER -c  "ansible localhost -b -o -m service -a 'name=origin-node state=restarted'"
-	runuser -l $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/reboot-master-origin.yaml"
-	runuser -l $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/reboot-nodes.yaml"
-
-	if [ $? -eq 0 ]
-	then
-	   echo $(date) " - Cloud Provider setup of OpenShift Cluster completed successfully"
-	else
-	   echo $(date) "- Cloud Provider setup did not complete"
-	   exit 10
-	fi
-	
-	# Create Storage Class
-	echo $(date) "- Creating Storage Class"
-
-	runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/configurestorageclass.yaml"
-	echo $(date) "- Sleep for 15"
-	sleep 15
-	
-	# Installing Service Catalog, Ansible Service Broker and Template Service Broker
-	
-	echo $(date) "- Installing Service Catalog, Ansible Service Broker and Template Service Broker"
-	runuser -l $SUDOUSER -c "ansible-playbook -f 10 /home/$SUDOUSER/openshift-ansible/playbooks/openshift-service-catalog/config.yml"
-	echo $(date) "- Service Catalog, Ansible Service Broker and Template Service Broker installed successfully"
-	
-fi
+#if [[ $AZURE == "true" ]]
+#then
+#	# Execute setup-azure-master and setup-azure-node playbooks to configure Azure Cloud Provider
+#	echo $(date) "- Configuring OpenShift Cloud Provider to be Azure"
+#
+#	runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/setup-azure-master-origin.yaml"
+#
+#	if [ $? -eq 0 ]
+#	then
+#	   echo $(date) " - Cloud Provider setup of master config on Master Nodes completed successfully"
+#	else
+#	   echo $(date) "- Cloud Provider setup of master config on Master Nodes failed to completed"
+#	   exit 7
+#	fi
+#	
+#	echo $(date) "- Sleep for 60"
+#	
+#	sleep 60
+#	runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/setup-azure-node-master-origin.yaml"
+#
+#	if [ $? -eq 0 ]
+#	then
+#	   echo $(date) " - Cloud Provider setup of node config on Master Nodes completed successfully"
+#	else
+#	   echo $(date) "- Cloud Provider setup of node config on Master Nodes failed to completed"
+#	   exit 8
+#	fi
+#	
+#	echo $(date) "- Sleep for 60"
+#	
+#	sleep 60
+#	runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/setup-azure-node-origin.yaml"
+#
+#	if [ $? -eq 0 ]
+#	then
+#	   echo $(date) " - Cloud Provider setup of node config on App Nodes completed successfully"
+#	else
+#	   echo $(date) "- Cloud Provider setup of node config on App Nodes failed to completed"
+#	   exit 9
+#	fi
+#	
+#	echo $(date) "- Sleep for 120"
+#	
+#	sleep 120
+#	
+#	echo $(date) " - Rebooting cluster to complete installation"
+#	runuser -l $SUDOUSER -c  "oc label --overwrite nodes $MASTER-0 openshift-infra=apiserver"
+#	runuser -l $SUDOUSER -c  "oc label --overwrite nodes --all logging-infra-fluentd=true logging=true"
+#	runuser -l $SUDOUSER -c  "ansible localhost -b -o -m service -a 'name=openvswitch state=restarted'"
+#	runuser -l $SUDOUSER -c  "ansible localhost -b -o -m service -a 'name=origin-master-api state=restarted'"
+#	runuser -l $SUDOUSER -c  "ansible localhost -b -o -m service -a 'name=origin-master-controllers state=restarted'"
+#	runuser -l $SUDOUSER -c  "ansible localhost -b -o -m service -a 'name=origin-node state=restarted'"
+#	runuser -l $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/reboot-master-origin.yaml"
+#	runuser -l $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/reboot-nodes.yaml"
+#
+#	if [ $? -eq 0 ]
+#	then
+#	   echo $(date) " - Cloud Provider setup of OpenShift Cluster completed successfully"
+#	else
+#	   echo $(date) "- Cloud Provider setup did not complete"
+#	   exit 10
+#	fi
+#	
+#	# Create Storage Class
+#	echo $(date) "- Creating Storage Class"
+#
+#	runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/configurestorageclass.yaml"
+#	echo $(date) "- Sleep for 15"
+#	sleep 15
+#	
+#	# Installing Service Catalog, Ansible Service Broker and Template Service Broker
+#	
+#	echo $(date) "- Installing Service Catalog, Ansible Service Broker and Template Service Broker"
+#	runuser -l $SUDOUSER -c "ansible-playbook -f 10 /home/$SUDOUSER/openshift-ansible/playbooks/openshift-service-catalog/config.yml"
+#	echo $(date) "- Service Catalog, Ansible Service Broker and Template Service Broker installed successfully"
+#	
+#fi
 
 # Configure Metrics
 
