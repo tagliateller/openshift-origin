@@ -811,7 +811,7 @@
 				"displayName": "InfraNSG",
 				"provider": "[variables('redHatTags').provider]",
 				"app": "[variables('redHatTags').app]",
-				"version": "[variables('redHatTags').version]"
+				"version": "[variables('redHatTags').version]",
 				"platform": "[variables('redHatTags').platform]"
 			},
 			"properties": {
