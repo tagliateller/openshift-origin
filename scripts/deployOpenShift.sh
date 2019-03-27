@@ -295,6 +295,10 @@ $MASTER-[0:${MASTERLOOP}]
 [master0]
 $MASTER-0
 
+# Only populated when CNS is enabled
+[glusterfs]
+$cnsglusterinfo
+
 # host group for nodes
 [nodes]
 $mastergroup
