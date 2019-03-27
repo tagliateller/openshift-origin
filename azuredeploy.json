@@ -952,7 +952,7 @@
 			"sku": {
 				"name": "[variables('storageSkuObject').cns.skuName]"
 			}
-		},
+		}, {
 			"type": "Microsoft.Network/publicIPAddresses",
 			"name": "[variables('infraLbPublicIpDnsLabel')]",
 			"location": "[variables('location')]",
