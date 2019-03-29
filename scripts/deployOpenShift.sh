@@ -369,6 +369,18 @@ echo $(date) "- Assigning cluster admin rights to user"
 
 runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/assignclusteradminrights.yaml"
 
+# Install OpenShift Atomic Client
+cd /root
+mkdir .kube
+runuser ${SUDOUSER} -c "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${SUDOUSER}@${MASTER}-0:~/.kube/config /tmp/kube-config"
+cp /tmp/kube-config /root/.kube/config
+mkdir /home/${SUDOUSER}/.kube
+cp /tmp/kube-config /home/${SUDOUSER}/.kube/config
+chown --recursive ${SUDOUSER} /home/${SUDOUSER}/.kube
+rm -f /tmp/kube-config
+#yum -y install atomic-openshift-clients
+
+
 # Configure Docker Registry to use Azure Storage Account
 echo $(date) "- Configuring Docker Registry to use Azure Storage Account"
 
