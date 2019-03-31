@@ -379,7 +379,7 @@ runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-play
 #chown --recursive ${SUDOUSER} /home/${SUDOUSER}/.kube
 #rm -f /tmp/kube-config
 #yum -y install atomic-openshift-clients
-
+export KUBECONFIG=/root/.kube
 
 # Configure Docker Registry to use Azure Storage Account
 echo $(date) "- Configuring Docker Registry to use Azure Storage Account"
