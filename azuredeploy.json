@@ -357,7 +357,7 @@
 		"masterSubnetName": "mastersubnet",
 		"nodeSubnetName": "nodesubnet",
 		"infraLbPublicIpDnsLabel": "[concat('infradns', uniqueString(concat(resourceGroup().id, 'infra311')))]",
-		"openshiftMasterPublicIpDnsLabel": "[concat('masterdns', uniqueString(concat(resourceGroup().id, 'master311')))]",
+		"openshiftMasterPublicIpDnsLabel": "[concat('masterdns', uniqueString(concat(resourceGroup().id, 'okd311hpe')))]",
 		"masterLoadBalancerName": "[concat(variables('openshiftMasterHostname'), 'lb')]",
 		"masterPublicIpAddressId": "[resourceId('Microsoft.Network/publicIPAddresses', variables('openshiftMasterPublicIpDnsLabel'))]",
 		"masterLbId": "[resourceId('Microsoft.Network/loadBalancers', variables('masterLoadBalancerName'))]",
