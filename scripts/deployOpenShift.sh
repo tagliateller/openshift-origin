@@ -248,6 +248,9 @@ openshift_disable_check=disk_availability,memory_availability,docker_image_avail
 
 $CLOUDKIND
 
+# standard storage class
+$SCKIND
+
 # default selectors for router and registry services
 #openshift_router_selector='region=infra'
 #openshift_registry_selector='region=infra'
