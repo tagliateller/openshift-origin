@@ -353,7 +353,7 @@
 		"masterSubnetPrefix": "10.1.0.0/16",
 		"nodeSubnetPrefix": "10.2.0.0/16",
 		"cnsUri": "[concat(parameters('storageKind'), 'CnsUri')]",
-		"virtualNetworkName": "openshiftvnet",
+		"virtualNetworkName": "[parameters('virtualNetworkName')]",
 		"masterSubnetName": "mastersubnet",
 		"nodeSubnetName": "nodesubnet",
 		"infraLbPublicIpDnsLabel": "[concat('infradns', uniqueString(concat(resourceGroup().id, 'infra311')))]",
