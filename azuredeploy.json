@@ -257,7 +257,13 @@
 			"metadata": {
 				"description": "Default Subdomain for application routing (Wildcard DNS) - must enter something even if you are using nip.io"
 			}
-		}
+		},
+                "virtualNetworkName": {
+			"type": "string",
+			"defaultValue": "openshiftvnet",
+			"metadata": {
+				"description": "name of the virtual network name"
+			}
 	},
 	"variables": {
 		"location": "[resourceGroup().location]",
