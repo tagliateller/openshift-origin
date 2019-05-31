@@ -264,6 +264,7 @@
 			"metadata": {
 				"description": "name of the virtual network name"
 			}
+                }
 	},
 	"variables": {
 		"location": "[resourceGroup().location]",
